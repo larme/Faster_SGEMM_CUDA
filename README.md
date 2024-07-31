@@ -1,12 +1,20 @@
 # Faster CUDA SGEMM from Scratch
 
-I have added one new CUDA kernel to the [SGEMM_CUDA](https://github.com/siboehm/SGEMM_CUDA) project by Simon Boehm.
+I have added one new 30-line CUDA kernel to the [SGEMM_CUDA](https://github.com/siboehm/SGEMM_CUDA) project by Simon Boehm, which compares TFLOPS of various kernels doing single precision matrix multiplication.
 
-The new 30-line kernel is 21% faster than cuBLAS float32 matmul when multiplying two 4096² matrices on a 4090 GPU.
+The new kernel is often faster (on this benchmark) than the standard float32 matrix multiplication from the cuBLAS library, for example:
+
+- 43% faster when multiplying matrices of size 12288² on an A100 GPU
+- 24% faster when multiplying matrices of size 12288² on a 4090 GPU
+- 23% faster when multiplying matrices of size 4096² on a H100 GPU
+- 11% faster when multiplying matrices of size 8192² on a H100 GPU
+
 
 How to run it:
 
 Modify CUDA_COMPUTE_CAPABILITY in CMakeLists.txt, if needed.
+
+Modify the variable SIZE in sgemm.cu
 
 ```
 mkdir build && cd build && cmake .. && cmake --build .
@@ -23,28 +31,38 @@ On a 4090 GPU, the average of 20 runs of SGEMM_CUDA:
 
 ```
 size    tflops_cublas  tflops_my  diff
-3584²   42.2           48.9       +16%
-3840²   48.3           54.8       +13%
-4096²   50.8-50.9      61.8       +21%
-5120²   51.9           50.3       -3%
-6144²   55.3           59.8       +8%
-7168²   54.7           59.3       +8%
-7680²   53.4           60.0       +10%
-7936²   54.3           63.6       +17%
-8192²   56.3-56.5      67.1       +19%
-8448²   53.5           64.1       +20%
-8704²   52.7           61.0       +16%
-9216²   53.5           62.6       +17%
-12288²  53.7           66.7       +24%  
 16384²  53.6           66.7       +24%
+12288²  53.7           66.7       +24%  
+9216²   53.5           62.6       +17%
+8704²   52.7           61.0       +16%
+8448²   53.5           64.1       +20%
+8192²   56.3-56.5      67.1       +19%
+7936²   54.3           63.6       +17%
+7680²   53.4           60.0       +10%
+7168²   54.7           59.3       +8%
+6144²   55.3           59.8       +8%
+5120²   51.9           50.3       -3%
+4096²   50.8-50.9      61.8       +21%
+3840²   48.3           54.8       +13%
+3584²   42.2           48.9       +16%
 ```
 
 On other GPUs:
 
 ```
 size    tflops_cublas  tflops_my  diff      gpu
-4096²   28.7-28.8      32.5       +13%      4070ts
+12288²  51.4           56.3       +9%       h100
+8192²   50.5           56.1       +11%      h100
+4096²   43.8           53.9       +23%      h100
+12288²  18.9           27.0       +43%      a100
+8192²   19.0           26.3       +38%      a100
+4096²   17.5           19.8       +13%      a100
 8192²   27.7-28.2      33.5       +19-21%   4070ts
+4096²   28.7-28.8      32.5       +13%      4070ts
+16384²  28.8           34.9       +21%      3090ti
+12288²  28.8           34.5       +20%      3090ti
+8192²   29.3           33.3       +14%      3090ti
+4096²   27.9           26.7       -4%       3090ti
 4096²   9.9-10.0       10.1-10.2  +1-2%     1080ti
 4096²   3.8-4.3        6.7        +56-76%   T4
 ```
@@ -56,7 +74,7 @@ for i in $(seq 1 20); do ./sgemm 0; done | grep -o 'performance[^)]*' | grep -o 
 
 The matrix size is hardcoded as 4096 in sgemm.cu
 
-Performance may vary with software versions. I used CUDA 11.8.
+Performance may vary with hardware configuration and software versions. I used CUDA 11.8.
 
 How the new kernel works:
 
