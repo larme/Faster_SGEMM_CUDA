@@ -19,8 +19,8 @@ int main(int argc, char **argv) {
 
   // get kernel number
   int kernel_num = std::stoi(argv[1]);
-  if (kernel_num < 0 || kernel_num > 12) {
-    std::cerr << "Please enter a valid kernel number (0-12)" << std::endl;
+  if (kernel_num < 0 || kernel_num > 13) {
+    std::cerr << "Please enter a valid kernel number (0-13)" << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   cudaEventCreate(&end);
 
   // cuBLAS FLOPs ceiling is reached at 8192
-  std::vector<int> SIZE = {128, 256, 512, 1024, 2048, 4096};
+  std::vector<int> SIZE = {4096};
 
   long m, n, k, max_size;
   max_size = SIZE[SIZE.size() - 1];

@@ -1,3 +1,81 @@
+# Faster CUDA SGEMM from Scratch
+
+I have added one new CUDA kernel to the [SGEMM_CUDA](https://github.com/siboehm/SGEMM_CUDA) project by Simon Boehm.
+
+The new 30-line kernel is 21% faster than cuBLAS float32 matmul when multiplying two 4096² matrices on a 4090 GPU.
+
+How to run it:
+
+Modify CUDA_COMPUTE_CAPABILITY in CMakeLists.txt, if needed.
+
+```
+mkdir build && cd build && cmake .. && cmake --build .
+
+./sgemm 0
+runs the function cublasGemmEx() 50 times.
+
+./sgemm 13
+runs my new kernel sgemmZeroRegisters() 50 times.
+```
+
+
+On a 4090 GPU, the average of 20 runs of SGEMM_CUDA:
+
+```
+size    tflops_cublas  tflops_my  diff
+3584²   42.2           48.9       +16%
+3840²   48.3           54.8       +13%
+4096²   50.8-50.9      61.8       +21%
+5120²   51.9           50.3       -3%
+6144²   55.3           59.8       +8%
+7168²   54.7           59.3       +8%
+7680²   53.4           60.0       +10%
+7936²   54.3           63.6       +17%
+8192²   56.3-56.5      67.1       +19%
+8448²   53.5           64.1       +20%
+8704²   52.7           61.0       +16%
+9216²   53.5           62.6       +17%
+12288²  53.7           66.7       +24%  
+16384²  53.6           66.7       +24%
+```
+
+On other GPUs:
+
+```
+size    tflops_cublas  tflops_my  diff      gpu
+4096²   28.7-28.8      32.5       +13%      4070ts
+8192²   27.7-28.2      33.5       +19-21%   4070ts
+4096²   9.9-10.0       10.1-10.2  +1-2%     1080ti
+4096²   3.8-4.3        6.7        +56-76%   T4
+```
+
+The average TFLOPS values were calculated using:
+```
+for i in $(seq 1 20); do ./sgemm 0; done | grep -o 'performance[^)]*' | grep -o '[^(]*$' | awk '{a=a+$1;cnt=cnt+1}END{print(a/cnt)}'
+```
+
+The matrix size is hardcoded as 4096 in sgemm.cu
+
+Performance may vary with software versions. I used CUDA 11.8.
+
+How the new kernel works:
+
+the code is straightforward and similar to other kernels in the original repository.
+The only trick is what I call "triggering compilation to using zero registers".
+The GPU has a limit of 65536 4-byte registers per block.
+With 512 threads per block, that gives 65536/512 = 128 registers per thread.
+Every thread calculates simultaneously 128 values, accumulating each value in one register.
+That leaves 0 registers for the actual operation of the kernel.
+Yet the code somehow compiles to a correctly working kernel.
+
+Arek Paterek
+
+```
+
+```
+
+The description of the original SGEMM_CUDA:
+
 # Fast CUDA SGEMM from Scratch
 
 Step-by-step optimization of matrix multiplication, implemented in CUDA.
